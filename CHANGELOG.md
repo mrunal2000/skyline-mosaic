@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+### Changed
+
+- **`effect="shimmer"` replaced with `effect="halftone"`.** The specular
+  sweep is gone; halftone renders each cell as a print-style dot sized by ink
+  coverage (darker cells = bigger dots in day, brighter = bigger at night).
+  Unlike shimmer it settles and stops the render loop, and it pulses with
+  `twinkle` at night. Update any `effect="shimmer"` usage to `"halftone"` (or
+  `"mosaic"`).
+
 ## 0.4.1
 
 - Add repository, homepage, and bugs metadata so the npm page links to GitHub.

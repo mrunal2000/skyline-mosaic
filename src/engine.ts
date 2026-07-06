@@ -3,7 +3,7 @@
 // component (and future Vue/Svelte wrappers) are thin drivers over this.
 
 export type ResolvedMode = "day" | "night";
-export type Effect = "mosaic" | "dither" | "shimmer";
+export type Effect = "mosaic" | "dither" | "halftone";
 export type Transition = "dissolve" | "sweep" | "rise";
 export type DitherShape = "square" | "circle" | "diamond" | "dot";
 export type DitherGrid = "2x2" | "4x4" | "8x8";
@@ -421,7 +421,7 @@ export class SkylineEngine {
   private continuousNeeded(now: number): boolean {
     const elapsed = now - this.startTime;
     if (elapsed < this.settleTimeMs()) return true;
-    if (this.opts.effect === "shimmer") return true;
+    // (halftone settles like mosaic — no forced continuous frame)
     if (this.opts.fog && !this.opts.reducedMotion) return true;
     if (
       this.opts.mode === "night" &&
@@ -467,7 +467,7 @@ export class SkylineEngine {
     ctx.clearRect(0, 0, this.cssWidth, this.cssHeight);
 
     if (opts.effect === "dither") this.renderDither(elapsed, now);
-    else if (opts.effect === "shimmer") this.renderShimmer(elapsed, now);
+    else if (opts.effect === "halftone") this.renderHalftone(elapsed, now);
     else this.renderMosaic(elapsed, now);
 
     if (opts.mode === "night") this.renderBloom(elapsed, now);
@@ -713,45 +713,35 @@ export class SkylineEngine {
     ctx.fill();
   }
 
-  private renderShimmer(elapsed: number, now: number) {
-    const { ctx, opts } = this;
-    const size = Math.max(1, this.cellSizePx - opts.cellGap);
-    const sweepMs = 2600;
-    const phase = (now % sweepMs) / sweepMs;
-    const diagSpan = this.cssWidth + this.cssHeight;
-    const isNight = opts.mode === "night";
+  /**
+   * Halftone print look: each cell becomes a dot sized by its ink coverage.
+   * On the light day sky, darker cells make bigger dots (ink-on-paper model);
+   * at night, brighter cells make bigger dots (light-on-dark). Dots grow in
+   * with the reveal and, at night, pulse with twinkle.
+   */
+  private renderHalftone(elapsed: number, now: number) {
+    const { ctx } = this;
+    const spacing = this.cellSizePx;
+    const half = spacing / 2;
+    // >0.5 so full-coverage dots overlap into solid mass in dense areas.
+    const maxR = spacing * 0.72;
+    const isNight = this.opts.mode === "night";
 
     for (const c of this.cells) {
       const p = this.revealProgress(c, elapsed);
-      if (p <= 0 && !c.from) continue;
+      if (p <= 0) continue;
 
-      const diagPos = (c.x + (this.cssHeight - c.y)) / diagSpan;
-      const dist = Math.abs(((diagPos - phase + 1.5) % 1) - 0.5);
-      const specular = Math.max(0, 1 - dist * 6) * 160;
+      const color = isNight ? this.nightDynamics(c, now) ?? c.night : c.day;
+      const lum = (color[0] + color[1] + color[2]) / 3 / 255;
+      // Ink coverage: distance from the sky tone the mosaic sits on.
+      const coverage = Math.max(0, Math.min(1, isNight ? lum : 1 - lum));
+      const radius = maxR * Math.sqrt(coverage) * p;
+      if (radius < 0.35) continue;
 
-      let target: RGB;
-      if (isNight) {
-        const [nr, ng, nb] = c.night;
-        const lum = (nr + ng + nb) / 3;
-        const base = 30 + (lum / 255) * 110;
-        const v = Math.min(255, base + specular);
-        target = [v | 0, v | 0, (v + 4) | 0];
-      } else {
-        const [dr, dg, db] = c.day;
-        const lum = (dr + dg + db) / 3 / 255;
-        const shade = 0.55 + lum * 0.35;
-        target = [
-          Math.min(255, dr * shade + specular) | 0,
-          Math.min(255, dg * shade + specular) | 0,
-          Math.min(255, db * shade + specular * 0.92) | 0,
-        ];
-      }
-
-      if (p < 1 && c.from) target = lerpRgb(c.from, target, p);
-      if (p < 1 && !c.from) ctx.globalAlpha = p;
-      ctx.fillStyle = rgbCss(target);
-      ctx.fillRect(c.x, c.y, size, size);
-      if (p < 1 && !c.from) ctx.globalAlpha = 1;
+      ctx.fillStyle = rgbCss(color);
+      ctx.beginPath();
+      ctx.arc(c.x + half, c.y + half, radius, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 

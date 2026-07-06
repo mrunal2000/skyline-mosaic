@@ -1,6 +1,6 @@
 {
   "name": "skyline-mosaic",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "An animated pixel-mosaic city skyline backdrop for React — day/night modes, twinkling windows, volumetric fog, dither & shimmer effects, and a city-lights bloom.",
   "license": "MIT",
   "author": "Mrunal Dhaygude <mrunal.dhaygude@gmail.com>",

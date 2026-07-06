@@ -321,7 +321,7 @@ export default function Showcase() {
                 <MicroLabel>Effect</MicroLabel>
                 <Segmented
                   value={effect}
-                  options={["mosaic", "dither", "shimmer"] as const}
+                  options={["mosaic", "dither", "halftone"] as const}
                   onChange={setEffect}
                   isNight={isNight}
                 />
