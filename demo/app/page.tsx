@@ -280,7 +280,7 @@ export default function Showcase() {
                 isNight ? "text-zinc-400" : "text-zinc-500"
               }`}
             >
-              react · canvas · one component
+              an animated skyline for react
             </div>
             <h1
               className={`text-balance text-[clamp(30px,4vw,46px)] leading-[1.05] tracking-[-0.015em] transition-colors duration-700 [font-family:var(--font-instrument-serif)] ${
