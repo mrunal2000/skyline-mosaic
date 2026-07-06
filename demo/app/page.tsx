@@ -321,7 +321,7 @@ export default function Showcase() {
                 <MicroLabel>Effect</MicroLabel>
                 <Segmented
                   value={effect}
-                  options={["mosaic", "dither", "halftone"] as const}
+                  options={["mosaic", "dither", "halftone", "contour"] as const}
                   onChange={setEffect}
                   isNight={isNight}
                 />
@@ -498,7 +498,7 @@ export default function Showcase() {
                 <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-700">
                   June 12–14 · Moscone West
                 </div>
-                <div className="max-w-[520px] text-balance text-[clamp(22px,2.6vw,34px)] leading-[1.08] text-zinc-900 [font-family:var(--font-instrument-serif)]">
+                <div className="max-w-[480px] text-balance font-mono text-[clamp(19px,2.2vw,28px)] font-medium leading-[1.12] tracking-[-0.03em] text-zinc-900">
                   The JavaScript conference above the fog.
                 </div>
                 <div className="mt-1 rounded-full bg-zinc-900 px-4 py-1.5 text-[12.5px] font-medium text-zinc-50">

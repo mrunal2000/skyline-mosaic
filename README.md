@@ -64,7 +64,7 @@ backdrop, so give the wrapper a height and put your content on top with
 | --- | --- | --- | --- |
 | `mode` | `"day" \| "night" \| "auto"` | `"day"` | Palette. `"auto"` follows `prefers-color-scheme`. |
 | `scene` | `"sf"` \| `{ day, night? }` | `"sf"` | Built-in scene or a custom image pair. |
-| `effect` | `"mosaic" \| "dither" \| "halftone"` | `"mosaic"` | Rendering style. |
+| `effect` | `"mosaic" \| "dither" \| "halftone" \| "contour"` | `"mosaic"` | Rendering style. |
 | `dither` | `{ grid?, shape?, levels? }` | `4x4`, `square`, `4` | Ordered-dither options (used when `effect="dither"`). |
 | `transition` | `"dissolve" \| "sweep" \| "rise"` | `"dissolve"` | How the reveal is choreographed. |
 | `transitionDurationMs` | `number` | `2000` | Length of the build-in / mode-change reveal. |

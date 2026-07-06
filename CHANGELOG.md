@@ -2,6 +2,12 @@
 
 ## 0.5.0
 
+### Added
+
+- `effect="contour"`: a screen-print / poster look — cell brightness snapped
+  to a few tonal bands recolored from a designed ramp (warm sunset in day, an
+  indigo→amber synthwave ramp at night).
+
 ### Changed
 
 - **`effect="shimmer"` replaced with `effect="halftone"`.** The specular
