@@ -112,7 +112,13 @@ function ToggleRow({
       </span>
       <span
         className={`relative h-5 w-9 shrink-0 rounded-full transition-[background-color] duration-200 ease-out ${
-          on ? "bg-emerald-500" : isNight ? "bg-white/[0.14]" : "bg-black/[0.12]"
+          on
+            ? isNight
+              ? "bg-zinc-500"
+              : "bg-zinc-900"
+            : isNight
+              ? "bg-white/[0.14]"
+              : "bg-black/[0.12]"
         }`}
       >
         <span
