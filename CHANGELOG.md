@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- Add repository, homepage, and bugs metadata so the npm page links to GitHub.
+
 ## 0.4.0
 
 The big rework. The renderer was rebuilt around a framework-free engine
