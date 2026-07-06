@@ -125,7 +125,13 @@ function ToggleRow({
   );
 }
 
-function CopyChip({ isNight }: { isNight: boolean }) {
+function CopyChip({
+  isNight,
+  size = "full",
+}: {
+  isNight: boolean;
+  size?: "full" | "auto";
+}) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -135,7 +141,7 @@ function CopyChip({ isNight }: { isNight: boolean }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1600);
       }}
-      className={`group inline-flex h-9 w-full cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border px-3 font-mono text-[12.5px] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.96] ${
+      className={`group inline-flex h-9 ${size === "full" ? "w-full" : "w-fit"} cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border px-3 font-mono text-[12.5px] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.96] ${
         isNight
           ? "border-white/[0.1] bg-white/[0.04] text-zinc-200 hover:bg-white/[0.08]"
           : "border-black/[0.1] bg-white/50 text-zinc-800 hover:bg-white/75"
@@ -321,6 +327,9 @@ export default function Showcase() {
               Day and night palettes, blooming windows, dither and shimmer —
               tuned to sit quietly behind real content.
             </p>
+            <div className="mt-4">
+              <CopyChip isNight={isNight} size="auto" />
+            </div>
           </header>
 
           {/* control panel — floats top-right on the scene */}
@@ -430,7 +439,6 @@ export default function Showcase() {
                 Replay build-in
               </button>
 
-              <CopyChip isNight={isNight} />
             </div>
           </aside>
         </div>
