@@ -564,7 +564,7 @@ export class SkylineEngine {
     const img = cctx.createImageData(W, H);
     for (let y = 0; y < H; y++) {
       const h01 = y / (H - 1);
-      const band = Math.exp(-Math.pow((h01 - 0.4) / 0.36, 2));
+      const band = Math.exp(-Math.pow((h01 - 0.42) / 0.44, 2));
       for (let x = 0; x < W; x++) {
         let n = 0;
         for (const o of octaves) {
@@ -585,7 +585,7 @@ export class SkylineEngine {
         // Threshold the noise so clouds are patchy streaks, not a wash;
         // edge fades guarantee the drawn rect never shows a hard cut line.
         const edge = smoothstep(0, 0.18, h01) * (1 - smoothstep(0.8, 1, h01));
-        const a = band * edge * smoothstep(0.42, 0.75, n);
+        const a = band * edge * smoothstep(0.32, 0.68, n);
         const idx = (y * W + x) * 4;
         img.data[idx] = 255;
         img.data[idx + 1] = 255;
@@ -610,8 +610,8 @@ export class SkylineEngine {
     // shapes — barely-there gray against the dark sky.
     const night = opts.mode === "night";
     const layers = [
-      { seed: 4242, top: 0.02, h: 0.54, speed: 3.5, alpha: night ? 0.2 : 0.68, phase: 0.4 },
-      { seed: 8181, top: 0.1, h: 0.46, speed: 8, alpha: night ? 0.14 : 0.52, phase: 1.7 },
+      { seed: 4242, top: 0.02, h: 0.6, speed: 3.5, alpha: night ? 0.24 : 0.85, phase: 0.4 },
+      { seed: 8181, top: 0.08, h: 0.52, speed: 8, alpha: night ? 0.17 : 0.65, phase: 1.7 },
     ];
 
     ctx.save();
