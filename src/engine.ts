@@ -27,6 +27,7 @@ export type EngineOptions = {
   transitionDurationMs: number;
   twinkle: boolean;
   fog: boolean;
+  clouds: boolean;
   reducedMotion: boolean;
 };
 
@@ -242,6 +243,12 @@ export class SkylineEngine {
   private fogTextures = new Map<string, HTMLCanvasElement>();
   private buildings: { top: number; bottom: number; startCol: number; endCol: number }[] = [];
   private beacons: { x: number; y: number; phase: number }[] = [];
+  private cloudTextures = new Map<number, HTMLCanvasElement>();
+  private pointer: { x: number; y: number } | null = null;
+  /** eased 0..1 strength + smoothed position of the cursor's cloud-clearing */
+  private part = { x: 0, y: 0, amount: 0 };
+  private onPointerMove?: (e: PointerEvent) => void;
+  private onPointerLeave?: () => void;
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOptions) {
     this.canvas = canvas;
@@ -250,6 +257,7 @@ export class SkylineEngine {
     this.ctx = ctx;
     this.opts = opts;
     void this.load();
+    if (opts.clouds) this.attachPointer();
   }
 
   private async load() {
@@ -524,6 +532,153 @@ export class SkylineEngine {
     }
   }
 
+  // --- clouds ----------------------------------------------------------------
+
+  /**
+   * Cloud density texture: same fractal machinery as the fog, but thresholded
+   * into patchy streaks and shaped by a gaussian band so clouds live in the
+   * mid-sky rather than forming a solid sheet.
+   */
+  private cloudTexture(seed: number): HTMLCanvasElement {
+    const cached = this.cloudTextures.get(seed);
+    if (cached) return cached;
+    const W = FOG_TEX_W;
+    const H = FOG_TEX_H;
+    const rand = mulberry32(seed);
+    const octaves = [
+      { cols: 4, rows: 2, amp: 0.5 },
+      { cols: 8, rows: 4, amp: 0.27 },
+      { cols: 16, rows: 8, amp: 0.15 },
+      { cols: 32, rows: 16, amp: 0.08 },
+    ].map((o) => ({
+      ...o,
+      grid: Array.from({ length: o.rows + 1 }, () =>
+        Array.from({ length: o.cols }, () => rand())
+      ),
+    }));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const cctx = canvas.getContext("2d")!;
+    const img = cctx.createImageData(W, H);
+    for (let y = 0; y < H; y++) {
+      const h01 = y / (H - 1);
+      const band = Math.exp(-Math.pow((h01 - 0.38) / 0.3, 2));
+      for (let x = 0; x < W; x++) {
+        let n = 0;
+        for (const o of octaves) {
+          const gx = (x / W) * o.cols;
+          const gy = (y / H) * o.rows;
+          const i0 = Math.floor(gx);
+          const j0 = Math.min(o.rows - 1, Math.floor(gy));
+          const fx = smooth(gx - i0);
+          const fy = smooth(gy - j0);
+          const i1 = (i0 + 1) % o.cols;
+          const row0 = o.grid[j0];
+          const row1 = o.grid[j0 + 1];
+          n +=
+            o.amp *
+            ((row0[i0 % o.cols] * (1 - fx) + row0[i1] * fx) * (1 - fy) +
+              (row1[i0 % o.cols] * (1 - fx) + row1[i1] * fx) * fy);
+        }
+        // Threshold the noise so clouds are patchy streaks, not a wash.
+        const a = band * smoothstep(0.52, 0.8, n);
+        const idx = (y * W + x) * 4;
+        img.data[idx] = 255;
+        img.data[idx + 1] = 255;
+        img.data[idx + 2] = 255;
+        img.data[idx + 3] = Math.round(a * 255);
+      }
+    }
+    cctx.putImageData(img, 0, 0);
+    this.cloudTextures.set(seed, canvas);
+    return canvas;
+  }
+
+  private renderClouds(elapsed: number, now: number) {
+    const { ctx, opts } = this;
+    const reveal = opts.reducedMotion
+      ? 1
+      : Math.min(1, Math.max(0, elapsed / this.settleTimeMs()));
+    const t = opts.reducedMotion ? 0 : now * 0.001;
+
+    // Two decorrelated layers in the upper sky, drifting with the wind.
+    const layers = [
+      { seed: 4242, top: 0.02, h: 0.5, speed: 3.5, alpha: 0.5, phase: 0.4 },
+      { seed: 8181, top: 0.1, h: 0.42, speed: 8, alpha: 0.36, phase: 1.7 },
+    ];
+
+    ctx.save();
+    for (const L of layers) {
+      const tex = this.cloudTexture(L.seed);
+      const h = this.cssHeight * L.h;
+      const tileW = (FOG_TEX_W / FOG_TEX_H) * h * 2.6;
+      const wind = t + Math.sin(t * 0.05 + L.phase) * 9;
+      const off = (((wind * L.speed) % tileW) + tileW) % tileW;
+      ctx.globalAlpha = L.alpha * reveal;
+      for (let x = -off; x < this.cssWidth; x += tileW) {
+        ctx.drawImage(tex, x, this.cssHeight * L.top, tileW, h);
+      }
+    }
+
+    // Cursor parts the clouds: a soft clearing eases open under the pointer
+    // and drifts closed again when it leaves.
+    const target = this.pointer ? 1 : 0;
+    this.part.amount += (target - this.part.amount) * 0.07;
+    if (this.pointer) {
+      const k = this.part.amount < 0.05 ? 1 : 0.12;
+      this.part.x += (this.pointer.x - this.part.x) * k;
+      this.part.y += (this.pointer.y - this.part.y) * k;
+    }
+    if (this.part.amount > 0.01) {
+      const r = Math.max(90, Math.min(190, this.cssWidth * 0.11));
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.globalAlpha = this.part.amount * 0.9;
+      ctx.drawImage(
+        this.bloomSprite([255, 255, 255]),
+        this.part.x - r,
+        this.part.y - r,
+        r * 2,
+        r * 2
+      );
+    }
+    ctx.restore();
+  }
+
+  private attachPointer() {
+    if (this.onPointerMove) return;
+    this.onPointerMove = (e: PointerEvent) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      this.pointer =
+        x >= 0 && y >= 0 && x <= rect.width && y <= rect.height
+          ? { x, y }
+          : null;
+      this.ensureRunning();
+    };
+    this.onPointerLeave = () => {
+      this.pointer = null;
+      this.ensureRunning();
+    };
+    window.addEventListener("pointermove", this.onPointerMove, { passive: true });
+    window.addEventListener("pointerleave", this.onPointerLeave);
+    window.addEventListener("blur", this.onPointerLeave);
+  }
+
+  private detachPointer() {
+    if (this.onPointerMove)
+      window.removeEventListener("pointermove", this.onPointerMove);
+    if (this.onPointerLeave) {
+      window.removeEventListener("pointerleave", this.onPointerLeave);
+      window.removeEventListener("blur", this.onPointerLeave);
+    }
+    this.onPointerMove = undefined;
+    this.onPointerLeave = undefined;
+    this.pointer = null;
+  }
+
   // --- lifecycle -----------------------------------------------------------
 
   private continuousNeeded(now: number): boolean {
@@ -531,6 +686,12 @@ export class SkylineEngine {
     if (elapsed < this.settleTimeMs()) return true;
     // (halftone settles like mosaic — no forced continuous frame)
     if (this.opts.fog && !this.opts.reducedMotion) return true;
+    if (
+      this.opts.clouds &&
+      this.opts.mode === "day" &&
+      !this.opts.reducedMotion
+    )
+      return true;
     if (
       this.opts.mode === "night" &&
       this.opts.twinkle &&
@@ -573,6 +734,9 @@ export class SkylineEngine {
     const { ctx, opts } = this;
     const elapsed = now - this.startTime;
     ctx.clearRect(0, 0, this.cssWidth, this.cssHeight);
+
+    // Clouds sit behind the buildings — drawn first so cells occlude them.
+    if (opts.clouds && opts.mode === "day") this.renderClouds(elapsed, now);
 
     if (opts.effect === "dither") this.renderDither(elapsed, now);
     else if (opts.effect === "halftone") this.renderHalftone(elapsed, now);
@@ -1001,6 +1165,11 @@ export class SkylineEngine {
     const prev = this.opts;
     this.opts = { ...prev, ...next };
 
+    if (next.clouds !== undefined && next.clouds !== prev.clouds) {
+      if (next.clouds) this.attachPointer();
+      else this.detachPointer();
+    }
+
     // Changing the source images means re-loading and re-sampling.
     if (
       (next.dayImageSrc !== undefined && next.dayImageSrc !== prev.dayImageSrc) ||
@@ -1063,5 +1232,6 @@ export class SkylineEngine {
   destroy() {
     this.cancelled = true;
     cancelAnimationFrame(this.raf);
+    this.detachPointer();
   }
 }

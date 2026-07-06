@@ -15,6 +15,8 @@ The "high craft" release — the goal: stop looking like a filter on a photo.
 - **Red aviation beacons** blink on the tallest towers (night + `twinkle`).
 - **Fog glows.** At night a faint bloom is re-laid over the fog bank, so the
   fog catches the city light; fog drift now breathes in wind gusts.
+- **`clouds`.** Patchy noise-built clouds drift through the day sky on the
+  same wind system — and the cursor gently parts them.
 
 ### Changed
 

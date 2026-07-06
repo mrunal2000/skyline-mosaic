@@ -70,6 +70,7 @@ backdrop, so give the wrapper a height and put your content on top with
 | `transitionDurationMs` | `number` | `2000` | Length of the build-in / mode-change reveal. |
 | `twinkle` | `boolean` | `false` | Windows switch on/off like a real city; red beacons blink on the tallest towers. |
 | `fog` | `boolean` | `false` | Volumetric fog bank drifting through the skyline (day and night). |
+| `clouds` | `boolean` | `false` | Drifting clouds in the day sky; the cursor gently parts them. |
 | `sky` | `ReactNode` | — | Content rendered behind the mosaic (e.g. a gradient/shader sky). |
 | `cellSize` | `number` | — | Fixed square size in px. Overrides `cellSizeRatio`. |
 | `cellSizeRatio` | `number` | `~0.0025` | Square size as a fraction of container width (~4px @ 1600px). |

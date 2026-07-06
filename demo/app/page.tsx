@@ -22,13 +22,11 @@ const NIGHT_BG = [
   "radial-gradient(ellipse 50% 42% at 8% 88%, rgba(52,140,128,0.14), transparent 70%)",
   "linear-gradient(to bottom, #05050a 0%, #0a0a16 40%, #11101f 75%, #050507 100%)",
 ].join(", ");
-// Ethereal wash (after the gradient-explorations shader): sage → seafoam →
-// sky, milked toward white, with a teal bloom lower-left and a tinted horizon
-// band so the skyline never washes out into the pale ground.
+// Azure day sky with a warm haze at the horizon — landing on near-white was
+// washing out the pastel day palette of the skyline.
 const DAY_BG = [
-  "radial-gradient(ellipse 55% 60% at 8% 96%, rgba(84,184,166,0.5), transparent 70%)",
-  "linear-gradient(to top, rgba(140,192,175,0.38), transparent 32%)",
-  "linear-gradient(160deg, #8cc09f 0%, #9ecba4 14%, #add6cf 32%, #b0d1e5 55%, #e0efe9 76%, #f4f8f6 100%)",
+  "radial-gradient(ellipse 70% 45% at 72% 82%, rgba(255,243,209,0.5), transparent 72%)",
+  "linear-gradient(to bottom, #74b9e8 0%, #a3d2f0 45%, #cfe7f6 78%, #e9e4d8 100%)",
 ].join(", ");
 
 function MicroLabel({ children }: { children: React.ReactNode }) {
@@ -205,6 +203,7 @@ export default function Showcase() {
   const [shape, setShape] = useState<DitherShape>("square");
   const [twinkle, setTwinkle] = useState(true);
   const [fog, setFog] = useState(false);
+  const [clouds, setClouds] = useState(true);
   const [cellGap, setCellGap] = useState<"0" | "1" | "2" | "3">("1");
   const [replay, setReplay] = useState(0);
   const [systemDark, setSystemDark] = useState(false);
@@ -233,6 +232,7 @@ export default function Showcase() {
         if (s.shape) setShape(s.shape);
         if (typeof s.twinkle === "boolean") setTwinkle(s.twinkle);
         if (typeof s.fog === "boolean") setFog(s.fog);
+        if (typeof s.clouds === "boolean") setClouds(s.clouds);
         if (s.cellGap) setCellGap(s.cellGap);
       }
     } catch {}
@@ -243,10 +243,10 @@ export default function Showcase() {
     try {
       localStorage.setItem(
         PLAYGROUND_KEY,
-        JSON.stringify({ mode, effect, transition, shape, twinkle, fog, cellGap })
+        JSON.stringify({ mode, effect, transition, shape, twinkle, fog, clouds, cellGap })
       );
     } catch {}
-  }, [mode, effect, transition, shape, twinkle, fog, cellGap]);
+  }, [mode, effect, transition, shape, twinkle, fog, clouds, cellGap]);
 
   const isNight = mode === "night" || (mode === "auto" && systemDark);
 
@@ -268,7 +268,7 @@ export default function Showcase() {
       {/* film grain over everything — part of the ethereal treatment */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-[100] opacity-[0.05] mix-blend-overlay"
+        className="pointer-events-none fixed inset-0 z-[100] opacity-[0.07] mix-blend-overlay"
         style={{ backgroundImage: GRAIN }}
       />
 
@@ -284,6 +284,7 @@ export default function Showcase() {
           transition={transition}
           twinkle={twinkle}
           fog={fog}
+          clouds={clouds}
           cellGap={Number(cellGap)}
           dither={{ shape }}
           style={{ position: "absolute", inset: 0 }}
@@ -415,6 +416,7 @@ export default function Showcase() {
               <div className="flex flex-col">
                 <ToggleRow label="Window twinkle" on={twinkle} onChange={setTwinkle} isNight={isNight} />
                 <ToggleRow label="Fog" on={fog} onChange={setFog} isNight={isNight} />
+                <ToggleRow label="Clouds (day)" on={clouds} onChange={setClouds} isNight={isNight} />
               </div>
 
               <button

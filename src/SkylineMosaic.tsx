@@ -57,6 +57,8 @@ export type SkylineMosaicProps = {
   twinkle?: boolean;
   /** Volumetric fog bank drifting through the skyline (day and night). Defaults to false. */
   fog?: boolean;
+  /** Drifting clouds in the day sky; the cursor gently parts them. Defaults to false. */
+  clouds?: boolean;
   /** Content rendered behind the mosaic (e.g. a gradient or shader sky). */
   sky?: ReactNode;
   /** Override the day-mode image (takes precedence over `scene`). */
@@ -116,6 +118,7 @@ export default function SkylineMosaic({
   transitionDurationMs = 2000,
   twinkle = false,
   fog = false,
+  clouds = false,
   sky,
   dayImageSrc,
   nightImageSrc,
@@ -157,6 +160,7 @@ export default function SkylineMosaic({
       transitionDurationMs,
       twinkle: twinkle && !reducedMotion,
       fog,
+      clouds,
       reducedMotion,
     });
     engineRef.current = engine;
@@ -233,6 +237,7 @@ export default function SkylineMosaic({
       transitionDurationMs,
       twinkle: twinkle && !prefersReducedMotion(),
       fog,
+      clouds,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -249,6 +254,7 @@ export default function SkylineMosaic({
     transitionDurationMs,
     twinkle,
     fog,
+    clouds,
   ]);
 
   const isNight = resolveMode(mode) === "night";
