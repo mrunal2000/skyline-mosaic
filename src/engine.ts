@@ -582,8 +582,10 @@ export class SkylineEngine {
             ((row0[i0 % o.cols] * (1 - fx) + row0[i1] * fx) * (1 - fy) +
               (row1[i0 % o.cols] * (1 - fx) + row1[i1] * fx) * fy);
         }
-        // Threshold the noise so clouds are patchy streaks, not a wash.
-        const a = band * smoothstep(0.52, 0.8, n);
+        // Threshold the noise so clouds are patchy streaks, not a wash;
+        // edge fades guarantee the drawn rect never shows a hard cut line.
+        const edge = smoothstep(0, 0.18, h01) * (1 - smoothstep(0.8, 1, h01));
+        const a = band * edge * smoothstep(0.5, 0.8, n);
         const idx = (y * W + x) * 4;
         img.data[idx] = 255;
         img.data[idx + 1] = 255;
@@ -604,9 +606,12 @@ export class SkylineEngine {
     const t = opts.reducedMotion ? 0 : now * 0.001;
 
     // Two decorrelated layers in the upper sky, drifting with the wind.
+    // Day: bright white streaks. Night: the same clouds as faint moonlit
+    // shapes — barely-there gray against the dark sky.
+    const night = opts.mode === "night";
     const layers = [
-      { seed: 4242, top: 0.02, h: 0.5, speed: 3.5, alpha: 0.5, phase: 0.4 },
-      { seed: 8181, top: 0.1, h: 0.42, speed: 8, alpha: 0.36, phase: 1.7 },
+      { seed: 4242, top: 0.02, h: 0.5, speed: 3.5, alpha: night ? 0.16 : 0.55, phase: 0.4 },
+      { seed: 8181, top: 0.1, h: 0.42, speed: 8, alpha: night ? 0.11 : 0.4, phase: 1.7 },
     ];
 
     ctx.save();
@@ -686,12 +691,7 @@ export class SkylineEngine {
     if (elapsed < this.settleTimeMs()) return true;
     // (halftone settles like mosaic — no forced continuous frame)
     if (this.opts.fog && !this.opts.reducedMotion) return true;
-    if (
-      this.opts.clouds &&
-      this.opts.mode === "day" &&
-      !this.opts.reducedMotion
-    )
-      return true;
+    if (this.opts.clouds && !this.opts.reducedMotion) return true;
     if (
       this.opts.mode === "night" &&
       this.opts.twinkle &&
@@ -736,7 +736,7 @@ export class SkylineEngine {
     ctx.clearRect(0, 0, this.cssWidth, this.cssHeight);
 
     // Clouds sit behind the buildings — drawn first so cells occlude them.
-    if (opts.clouds && opts.mode === "day") this.renderClouds(elapsed, now);
+    if (opts.clouds) this.renderClouds(elapsed, now);
 
     if (opts.effect === "dither") this.renderDither(elapsed, now);
     else if (opts.effect === "halftone") this.renderHalftone(elapsed, now);

@@ -18,15 +18,18 @@ const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 // Night keeps its depth but picks up faint ethereal auras — violet high
 // on the right, a whisper of teal near the base.
 const NIGHT_BG = [
-  "radial-gradient(ellipse 60% 50% at 82% 8%, rgba(99,78,172,0.22), transparent 65%)",
-  "radial-gradient(ellipse 50% 42% at 8% 88%, rgba(52,140,128,0.14), transparent 70%)",
+  "radial-gradient(ellipse 60% 50% at 82% 8%, rgba(109,86,192,0.34), transparent 65%)",
+  "radial-gradient(ellipse 46% 38% at 22% 30%, rgba(64,88,190,0.2), transparent 70%)",
+  "radial-gradient(ellipse 70% 38% at 50% 100%, rgba(214,140,80,0.12), transparent 72%)",
+  "radial-gradient(ellipse 50% 42% at 8% 88%, rgba(52,140,128,0.16), transparent 70%)",
   "linear-gradient(to bottom, #05050a 0%, #0a0a16 40%, #11101f 75%, #050507 100%)",
 ].join(", ");
 // Azure day sky with a warm haze at the horizon — landing on near-white was
 // washing out the pastel day palette of the skyline.
 const DAY_BG = [
-  "radial-gradient(ellipse 70% 45% at 72% 82%, rgba(255,243,209,0.5), transparent 72%)",
-  "linear-gradient(to bottom, #74b9e8 0%, #a3d2f0 45%, #cfe7f6 78%, #e9e4d8 100%)",
+  "radial-gradient(ellipse 70% 50% at 75% 85%, rgba(255,214,170,0.55), transparent 70%)",
+  "radial-gradient(ellipse 55% 45% at 12% 18%, rgba(122,180,255,0.45), transparent 70%)",
+  "linear-gradient(155deg, #4f9ede 0%, #6fb3e9 22%, #93c8ef 45%, #b9dcf2 65%, #e8d9c3 88%, #f2e3cb 100%)",
 ].join(", ");
 
 function MicroLabel({ children }: { children: React.ReactNode }) {
