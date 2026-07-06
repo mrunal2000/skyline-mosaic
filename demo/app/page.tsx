@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   SkylineMosaic,
   type SkylineMosaicMode,
@@ -10,6 +10,7 @@ import {
 } from "skyline-mosaic";
 
 const INSTALL_CMD = "npm i skyline-mosaic";
+const PLAYGROUND_KEY = "skyline-playground";
 
 const NIGHT_BG =
   "linear-gradient(to bottom, #05050a 0%, #0a0a16 40%, #11101f 75%, #050507 100%)";
@@ -209,6 +210,34 @@ export default function Showcase() {
     return () => q.removeEventListener?.("change", onChange);
   }, []);
 
+  // Remember playground settings across refreshes.
+  const restored = useRef(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PLAYGROUND_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.mode) setMode(s.mode);
+        if (s.effect) setEffect(s.effect);
+        if (s.transition) setTransition(s.transition);
+        if (s.shape) setShape(s.shape);
+        if (typeof s.twinkle === "boolean") setTwinkle(s.twinkle);
+        if (typeof s.fog === "boolean") setFog(s.fog);
+        if (s.cellGap) setCellGap(s.cellGap);
+      }
+    } catch {}
+    restored.current = true;
+  }, []);
+  useEffect(() => {
+    if (!restored.current) return;
+    try {
+      localStorage.setItem(
+        PLAYGROUND_KEY,
+        JSON.stringify({ mode, effect, transition, shape, twinkle, fog, cellGap })
+      );
+    } catch {}
+  }, [mode, effect, transition, shape, twinkle, fog, cellGap]);
+
   const isNight = mode === "night" || (mode === "auto" && systemDark);
 
   return (
@@ -321,7 +350,7 @@ export default function Showcase() {
                 <MicroLabel>Effect</MicroLabel>
                 <Segmented
                   value={effect}
-                  options={["mosaic", "dither", "halftone", "contour"] as const}
+                  options={["mosaic", "dither", "halftone"] as const}
                   onChange={setEffect}
                   isNight={isNight}
                 />

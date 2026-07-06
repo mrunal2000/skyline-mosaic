@@ -3,7 +3,7 @@
 // component (and future Vue/Svelte wrappers) are thin drivers over this.
 
 export type ResolvedMode = "day" | "night";
-export type Effect = "mosaic" | "dither" | "halftone" | "contour";
+export type Effect = "mosaic" | "dither" | "halftone";
 export type Transition = "dissolve" | "sweep" | "rise";
 export type DitherShape = "square" | "circle" | "diamond" | "dot";
 export type DitherGrid = "2x2" | "4x4" | "8x8";
@@ -41,24 +41,6 @@ const DAY_SATURATION_BOOST = 1.25;
 const CELL_FADE_MS = 450;
 // Twinkle: brightness wobble amplitude on lit windows (fraction of the color).
 const TWINKLE_AMP = 0.5;
-
-// Contour: luminance quantized into these stepped tonal bands (shadow →
-// highlight), like a screen-print poster. Day is a warm sunset ramp; night a
-// synthwave indigo→amber ramp.
-const CONTOUR_RAMP: Record<ResolvedMode, RGB[]> = {
-  day: [
-    [46, 54, 100],
-    [128, 112, 176],
-    [232, 138, 118],
-    [255, 226, 170],
-  ],
-  night: [
-    [16, 15, 38],
-    [78, 40, 104],
-    [196, 74, 128],
-    [255, 198, 120],
-  ],
-};
 
 type RGB = [number, number, number];
 
@@ -486,7 +468,6 @@ export class SkylineEngine {
 
     if (opts.effect === "dither") this.renderDither(elapsed, now);
     else if (opts.effect === "halftone") this.renderHalftone(elapsed, now);
-    else if (opts.effect === "contour") this.renderContour(elapsed, now);
     else this.renderMosaic(elapsed, now);
 
     if (opts.mode === "night") this.renderBloom(elapsed, now);
@@ -764,44 +745,6 @@ export class SkylineEngine {
     }
   }
 
-  /**
-   * Contour / poster look: each cell's brightness is snapped to one of a few
-   * tonal bands and recolored from a designed ramp, so shading flattens into
-   * stepped regions like a screen print. Cells in the same band share an exact
-   * color, which is what makes the bands read.
-   */
-  private renderContour(elapsed: number, now: number) {
-    const { ctx, opts } = this;
-    const size = Math.max(1, this.cellSizePx - opts.cellGap);
-    const isNight = opts.mode === "night";
-    const ramp = CONTOUR_RAMP[opts.mode];
-    const levels = ramp.length;
-    const twinkling = isNight && opts.twinkle && !opts.reducedMotion;
-
-    for (const c of this.cells) {
-      const p = this.revealProgress(c, elapsed);
-      if (p <= 0 && !c.from) continue;
-
-      const base = isNight ? c.night : c.day;
-      const lum = (base[0] + base[1] + base[2]) / 3 / 255;
-      const band = Math.max(0, Math.min(levels - 1, Math.floor(lum * levels)));
-      const [br, bg, bb] = ramp[band];
-
-      let target: RGB = [br, bg, bb];
-      // Twinkle multiplies brightness on the banded color instead of shifting
-      // bands, so lit windows shimmer without hard band-jumping.
-      if (twinkling && c.isLit) {
-        const t = 1 + 0.4 * this.twinkleWave(c, now) * c.litBase;
-        target = [clampByte(br * t), clampByte(bg * t), clampByte(bb * t)];
-      }
-      if (p < 1 && c.from) target = lerpRgb(c.from, target, p);
-
-      if (p < 1 && !c.from) ctx.globalAlpha = p;
-      ctx.fillStyle = rgbCss(target);
-      ctx.fillRect(c.x, c.y, size, size);
-      if (p < 1 && !c.from) ctx.globalAlpha = 1;
-    }
-  }
 
   /**
    * Soft halo around lit windows. Uses pre-rendered radial-gradient sprites
