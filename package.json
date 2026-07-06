@@ -1,0 +1,54 @@
+{
+  "name": "skyline-mosaic",
+  "version": "0.4.0",
+  "description": "An animated pixel-mosaic city skyline backdrop for React — day/night modes, twinkling windows, volumetric fog, dither & shimmer effects, and a city-lights bloom.",
+  "license": "MIT",
+  "author": "Mrunal Dhaygude <mrunal.dhaygude@gmail.com>",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "assets": "node scripts/convert-assets.mjs",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "react": "^19",
+    "react-dom": "^19",
+    "sharp": "^0.34.0",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+  "keywords": [
+    "react",
+    "skyline",
+    "san-francisco",
+    "canvas",
+    "animation",
+    "mosaic",
+    "background",
+    "hero",
+    "dither",
+    "backdrop",
+    "day-night"
+  ]
+}
