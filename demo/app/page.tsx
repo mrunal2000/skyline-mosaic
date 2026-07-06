@@ -271,7 +271,7 @@ export default function Showcase() {
       {/* film grain over everything — part of the ethereal treatment */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-[100] opacity-[0.07] mix-blend-overlay"
+        className="pointer-events-none fixed inset-0 z-[100] opacity-[0.1] mix-blend-overlay"
         style={{ backgroundImage: GRAIN }}
       />
 
