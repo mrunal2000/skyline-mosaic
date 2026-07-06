@@ -2,7 +2,7 @@
 
 An animated pixel-mosaic city skyline backdrop for React. The skyline builds
 itself in cell by cell, with separate day and night palettes — at night, lit
-windows bloom and twinkle like the real thing.
+windows bloom, switch on and off, and beacons blink like the real thing.
 
 - **Zero images to copy.** Scenes ship inlined as WebP data URIs, so it works in
   any React setup (Next.js, Vite, CRA) with nothing to drop into `public/`.
@@ -68,7 +68,7 @@ backdrop, so give the wrapper a height and put your content on top with
 | `dither` | `{ grid?, shape?, levels? }` | `4x4`, `square`, `4` | Ordered-dither options (used when `effect="dither"`). |
 | `transition` | `"dissolve" \| "sweep" \| "rise"` | `"dissolve"` | How the reveal is choreographed. |
 | `transitionDurationMs` | `number` | `2000` | Length of the build-in / mode-change reveal. |
-| `twinkle` | `boolean` | `false` | At night, lit windows gently flicker. |
+| `twinkle` | `boolean` | `false` | Windows switch on/off like a real city; red beacons blink on the tallest towers. |
 | `fog` | `boolean` | `false` | Volumetric fog bank drifting through the skyline (day and night). |
 | `sky` | `ReactNode` | — | Content rendered behind the mosaic (e.g. a gradient/shader sky). |
 | `cellSize` | `number` | — | Fixed square size in px. Overrides `cellSizeRatio`. |

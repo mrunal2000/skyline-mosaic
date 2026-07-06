@@ -36,7 +36,17 @@ const LIGHT_BLOOM_THRESHOLD = 540;
 const NIGHT_BUILDING_BASE: [number, number, number] = [34, 34, 46];
 const NIGHT_LIT_THRESHOLD = 400;
 const NIGHT_WARM_COLOR: [number, number, number] = [255, 200, 110];
-const DAY_SATURATION_BOOST = 1.25;
+const DAY_SATURATION_BOOST = 1.15;
+// Art-directed day grade: shadows pulled toward slate-teal, highlights toward
+// warm paper — a palette that reads as designed rather than filtered.
+const DAY_SHADOW_TINT: RGB = [92, 112, 124];
+const DAY_HIGHLIGHT_TINT: RGB = [252, 242, 222];
+const DAY_GRADE_MIX = 0.38;
+// Buildings split where the rooftop line jumps by more than this many cells.
+const BUILDING_SPLIT = 4;
+// Red aviation beacons on the tallest towers (night + twinkle).
+const BEACON_COLOR: RGB = [255, 64, 72];
+const MAX_BEACONS = 4;
 // Per-cell fade after its reveal delay hits — cells ease in instead of popping.
 const CELL_FADE_MS = 450;
 // Twinkle: brightness wobble amplitude on lit windows (fraction of the color).
@@ -98,6 +108,18 @@ function boostSaturation([r, g, b]: RGB, factor: number): RGB {
     clampByte(avg + (g - avg) * factor),
     clampByte(avg + (b - avg) * factor),
   ];
+}
+
+/**
+ * Day grade: split-tone the photo pixel by luminance (cool shadows, warm
+ * highlights), then a gentle saturation lift — the palette feels chosen,
+ * not sampled.
+ */
+function gradeDay(rgb: RGB): RGB {
+  const lum = (rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114) / 255;
+  const t = lum * lum * (3 - 2 * lum);
+  const tint = lerpRgb(DAY_SHADOW_TINT, DAY_HIGHLIGHT_TINT, t);
+  return boostSaturation(lerpRgb(rgb, tint, DAY_GRADE_MIX), DAY_SATURATION_BOOST);
 }
 
 // Night color for a scene that has no dedicated night image: dark building
@@ -183,6 +205,12 @@ type Cell = {
   isLit: boolean;
   twinklePhase: number;
   twinkleSpeed: number;
+  /** which building (column-profile segment) this cell belongs to */
+  b: number;
+  /** discrete window state; onAmount eases 0..1 toward isOn */
+  isOn: boolean;
+  onAmount: number;
+  nextFlipAt: number;
   delay: number;
 };
 
@@ -212,6 +240,8 @@ export class SkylineEngine {
 
   private bloomSprites = new Map<number, HTMLCanvasElement>();
   private fogTextures = new Map<string, HTMLCanvasElement>();
+  private buildings: { top: number; bottom: number; startCol: number; endCol: number }[] = [];
+  private beacons: { x: number; y: number; phase: number }[] = [];
 
   constructor(canvas: HTMLCanvasElement, opts: EngineOptions) {
     this.canvas = canvas;
@@ -281,10 +311,7 @@ export class SkylineEngine {
         const idx = (py * this.drawWidth + px) * 4;
         if (dayData[idx + 3] <= ALPHA_THRESHOLD) continue;
 
-        const day = boostSaturation(
-          [dayData[idx], dayData[idx + 1], dayData[idx + 2]],
-          DAY_SATURATION_BOOST
-        );
+        const day = gradeDay([dayData[idx], dayData[idx + 1], dayData[idx + 2]]);
         const { color: night, litBase, isLit } = this.nightColor(
           nightData,
           px,
@@ -307,12 +334,17 @@ export class SkylineEngine {
           isLit,
           twinklePhase: Math.random() * Math.PI * 2,
           twinkleSpeed: 0.9 + Math.random() * 1.6,
+          b: 0,
+          isOn: true,
+          onAmount: 1,
+          nextFlipAt: 0,
           delay: 0,
         });
       }
     }
     this.cells = cells;
     this.settleTime = 0;
+    this.segmentBuildings();
 
     if (replayReveal) {
       this.assignDelays();
@@ -391,7 +423,65 @@ export class SkylineEngine {
     return { color, litBase: intensity, isLit };
   }
 
-  /** Choreograph the build-in / mode-change reveal per the transition style. */
+  /**
+   * Split the skyline into buildings using the column height profile: a new
+   * building starts wherever the rooftop line jumps. This lets the reveal and
+   * the beacons treat the city as buildings instead of pixels.
+   */
+  private segmentBuildings() {
+    const colTop = new Map<number, number>();
+    const colBottom = new Map<number, number>();
+    let maxCol = 0;
+    for (const c of this.cells) {
+      maxCol = Math.max(maxCol, c.col);
+      const t = colTop.get(c.col);
+      if (t === undefined || c.row < t) colTop.set(c.col, c.row);
+      const bo = colBottom.get(c.col);
+      if (bo === undefined || c.row > bo) colBottom.set(c.col, c.row);
+    }
+
+    const colBuilding = new Array<number>(maxCol + 1).fill(-1);
+    const buildings: { top: number; bottom: number; startCol: number; endCol: number }[] = [];
+    let prevTop: number | null = null;
+    for (let col = 0; col <= maxCol; col++) {
+      const top = colTop.get(col);
+      if (top === undefined) {
+        prevTop = null;
+        continue;
+      }
+      if (prevTop === null || Math.abs(top - prevTop) > BUILDING_SPLIT) {
+        buildings.push({
+          top,
+          bottom: colBottom.get(col) ?? top,
+          startCol: col,
+          endCol: col,
+        });
+      } else {
+        const b = buildings[buildings.length - 1];
+        b.top = Math.min(b.top, top);
+        b.bottom = Math.max(b.bottom, colBottom.get(col) ?? top);
+        b.endCol = col;
+      }
+      colBuilding[col] = buildings.length - 1;
+      prevTop = top;
+    }
+    for (const c of this.cells) c.b = Math.max(0, colBuilding[c.col]);
+    this.buildings = buildings;
+
+    // Aviation beacons on the tallest towers (smallest top row).
+    const size = this.cellSizePx;
+    this.beacons = buildings
+      .filter((b) => b.bottom - b.top > 8 && b.endCol - b.startCol >= 2)
+      .sort((a, z) => a.top - z.top)
+      .slice(0, MAX_BEACONS)
+      .map((b) => ({
+        x: this.offsetX + ((b.startCol + b.endCol) / 2) * size + size / 2,
+        y: this.offsetY + b.top * size - size * 0.8,
+        phase: Math.random() * Math.PI * 2,
+      }));
+  }
+
+  /** Choreograph the reveal: buildings turn on as buildings, floor by floor. */
   private assignDelays() {
     const { transition, transitionDurationMs, reducedMotion } = this.opts;
     this.settleTime = 0;
@@ -400,19 +490,37 @@ export class SkylineEngine {
       return;
     }
     const d = transitionDurationMs;
-    for (const c of this.cells) {
-      if (transition === "sweep") {
-        const t = this.drawWidth ? (c.x - this.offsetX) / this.drawWidth : 0;
-        c.delay = easeInOutQuad(t) * d * 0.82 + Math.random() * d * 0.18;
-      } else if (transition === "rise") {
-        // Lights climb floor by floor: bottom rows reveal first.
-        const t = this.drawHeight ? (c.y - this.offsetY) / this.drawHeight : 0;
-        c.delay = easeInOutQuad(1 - t) * d * 0.82 + Math.random() * d * 0.18;
-      } else {
-        // Bias delays early so the reveal starts dense and settles gently —
-        // an ease-out feel for a stochastic dissolve.
-        c.delay = Math.pow(Math.random(), 1.7) * d;
+    const n = Math.max(1, this.buildings.length);
+
+    // Order the buildings by transition style, then stagger their starts.
+    const order = this.buildings.map((_, i) => i);
+    if (transition === "sweep") {
+      order.sort((a, z) => this.buildings[a].startCol - this.buildings[z].startCol);
+    } else if (transition === "rise") {
+      // Shortest first — the towers complete the skyline.
+      order.sort((a, z) => this.buildings[z].top - this.buildings[a].top);
+    } else {
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = (Math.random() * (i + 1)) | 0;
+        [order[i], order[j]] = [order[j], order[i]];
       }
+    }
+    const startOf = new Array<number>(n).fill(0);
+    order.forEach((b, pos) => {
+      startOf[b] = (pos / n) * d * 0.72 + Math.random() * d * 0.06;
+    });
+
+    // Within a building, windows come on bottom-up with a little jitter —
+    // floors lighting one after another.
+    for (const c of this.cells) {
+      const b = this.buildings[c.b];
+      if (!b) {
+        c.delay = Math.random() * d;
+        continue;
+      }
+      const h = Math.max(1, b.bottom - b.top);
+      const fromBottom = (b.bottom - c.row) / h; // 0 at base, 1 at rooftop
+      c.delay = startOf[c.b] + fromBottom * d * 0.22 + Math.random() * d * 0.06;
     }
   }
 
@@ -472,6 +580,12 @@ export class SkylineEngine {
 
     if (opts.mode === "night") this.renderBloom(elapsed, now);
     if (opts.fog) this.renderFog(elapsed, now);
+    if (opts.mode === "night") {
+      // Light scatters through fog: re-lay a faint bloom over the bank so
+      // the fog glows where the city is bright.
+      if (opts.fog) this.renderBloom(elapsed, now, 0.3);
+      if (opts.twinkle) this.renderBeacons(now);
+    }
   }
 
   // --- fog -----------------------------------------------------------------
@@ -570,7 +684,9 @@ export class SkylineEngine {
         this.cssHeight - L.h + Math.sin(t * 0.18 + L.phase) * L.bob;
       const pulse = 0.86 + 0.14 * Math.sin(t * 0.1 + L.phase * 2);
       ctx.globalAlpha = Math.min(1, L.alpha * pulse * reveal);
-      const off = (t * L.speed) % tileW;
+      // Wind: drift breathes in slow gusts instead of a constant crawl.
+      const wind = t + Math.sin(t * 0.07 + L.phase) * 7;
+      const off = (((wind * L.speed) % tileW) + tileW) % tileW;
       for (let x = -off; x < this.cssWidth; x += tileW) {
         ctx.drawImage(tex, x, y, tileW, L.h);
       }
@@ -605,13 +721,31 @@ export class SkylineEngine {
   }
 
   private nightDynamics(c: Cell, now: number): RGB | null {
-    // Ambient twinkle: brightness sparkle on lit windows.
     if (!this.opts.twinkle || !c.isLit || this.opts.reducedMotion) return null;
-    const t = 1 + TWINKLE_AMP * this.twinkleWave(c, now) * Math.max(0.35, c.litBase);
+
+    // Discrete window behavior: someone flips a switch. A window holds its
+    // state for seconds, then toggles; the change eases over a few hundred
+    // ms so it reads as a light, not a glitch.
+    if (c.nextFlipAt === 0) {
+      c.nextFlipAt = now + 2000 + Math.random() * 20000;
+    } else if (now >= c.nextFlipAt) {
+      if (c.isOn && Math.random() < 0.4) {
+        c.isOn = false;
+        c.nextFlipAt = now + 1500 + Math.random() * 5000; // dark for a moment
+      } else {
+        c.isOn = true;
+        c.nextFlipAt = now + 6000 + Math.random() * 22000;
+      }
+    }
+    c.onAmount += ((c.isOn ? 1 : 0) - c.onAmount) * 0.06;
+
+    // A faint residual flicker keeps lit glass from looking frozen.
+    const flicker = 1 + 0.08 * this.twinkleWave(c, now) * c.litBase;
+    const k = (0.25 + 0.75 * c.onAmount) * flicker;
     return [
-      clampByte(c.night[0] * t),
-      clampByte(c.night[1] * t),
-      clampByte(c.night[2] * t),
+      clampByte(NIGHT_BUILDING_BASE[0] + (c.night[0] - NIGHT_BUILDING_BASE[0]) * k),
+      clampByte(NIGHT_BUILDING_BASE[1] + (c.night[1] - NIGHT_BUILDING_BASE[1]) * k),
+      clampByte(NIGHT_BUILDING_BASE[2] + (c.night[2] - NIGHT_BUILDING_BASE[2]) * k),
     ];
   }
 
@@ -751,7 +885,7 @@ export class SkylineEngine {
    * composited additively — `ctx.shadowBlur` per cell is orders of magnitude
    * slower and was the main source of night-mode jank.
    */
-  private renderBloom(elapsed: number, now: number) {
+  private renderBloom(elapsed: number, now: number, alphaMul = 1) {
     const { ctx } = this;
     // Keep halos tight and faint — additive sprites stack up fast, and too
     // much bloom melts the crisp window grid into bokeh mush.
@@ -764,16 +898,52 @@ export class SkylineEngine {
       const p = this.revealProgress(c, elapsed);
       if (p <= 0) continue;
       let strength = 0.28 + 0.34 * c.litBase;
-      // Halos breathe with the same waveform as the window color, so a
-      // sparkle reads as light, not just a color change.
-      if (twinkling) strength *= 1 + 0.5 * this.twinkleWave(c, now);
-      ctx.globalAlpha = p * Math.max(0, Math.min(1, strength));
+      // Halos follow the window's actual on/off state, plus a faint breath.
+      if (twinkling) {
+        strength *=
+          (0.15 + 0.85 * c.onAmount) * (1 + 0.18 * this.twinkleWave(c, now));
+      }
+      ctx.globalAlpha = Math.max(0, Math.min(1, p * strength * alphaMul));
       ctx.drawImage(
         this.bloomSprite(c.night),
         c.x - radius,
         c.y - radius,
         radius * 2,
         radius * 2
+      );
+    }
+    ctx.restore();
+  }
+
+  /** Blinking red aviation beacons on the tallest rooftops. */
+  private renderBeacons(now: number) {
+    if (!this.beacons.length) return;
+    const { ctx } = this;
+    const size = this.cellSizePx;
+    const radius = size * 3;
+    const t = now * 0.001;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const bc of this.beacons) {
+      const flash = this.opts.reducedMotion
+        ? 0.55
+        : Math.pow(Math.max(0, Math.sin(t * 4.2 + bc.phase)), 4);
+      if (flash < 0.02) continue;
+      ctx.globalAlpha = flash;
+      ctx.drawImage(
+        this.bloomSprite(BEACON_COLOR),
+        bc.x - radius,
+        bc.y - radius,
+        radius * 2,
+        radius * 2
+      );
+      ctx.globalAlpha = Math.min(1, flash * 1.4);
+      ctx.fillStyle = rgbCss(BEACON_COLOR);
+      ctx.fillRect(
+        bc.x - size / 2,
+        bc.y - size / 2,
+        Math.max(2, size - 1),
+        Math.max(2, size - 1)
       );
     }
     ctx.restore();

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.0
+
+The "high craft" release — the goal: stop looking like a filter on a photo.
+
+### Added
+
+- **Building-aware reveal.** The skyline is segmented into buildings from its
+  rooftop profile; all three transitions now choreograph per building, with
+  floors lighting bottom-up — the city turns on like a city.
+- **Discrete window behavior.** With `twinkle`, windows now switch on and off
+  like someone flipped a switch (held states, eased changes) instead of
+  wobbling sinusoidally. Bloom follows each window's actual state.
+- **Red aviation beacons** blink on the tallest towers (night + `twinkle`).
+- **Fog glows.** At night a faint bloom is re-laid over the fog bank, so the
+  fog catches the city light; fog drift now breathes in wind gusts.
+
+### Changed
+
+- **Art-directed day palette.** Day cells are split-toned (slate-teal
+  shadows → warm-paper highlights) instead of echoing the photo's colors.
+
 ## 0.5.0
 
 ### Changed

@@ -12,13 +12,23 @@ import {
 const INSTALL_CMD = "npm i skyline-mosaic";
 const PLAYGROUND_KEY = "skyline-playground";
 
-const NIGHT_BG =
-  "linear-gradient(to bottom, #05050a 0%, #0a0a16 40%, #11101f 75%, #050507 100%)";
-// Deeper azure up top, warm haze at the horizon — landing on near-white was
-// washing out the pastel day palette of the skyline.
+// Film grain overlay — the ethereal wash needs tooth or it reads as plastic.
+const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+
+// Night keeps its depth but picks up faint ethereal auras — violet high
+// on the right, a whisper of teal near the base.
+const NIGHT_BG = [
+  "radial-gradient(ellipse 60% 50% at 82% 8%, rgba(99,78,172,0.22), transparent 65%)",
+  "radial-gradient(ellipse 50% 42% at 8% 88%, rgba(52,140,128,0.14), transparent 70%)",
+  "linear-gradient(to bottom, #05050a 0%, #0a0a16 40%, #11101f 75%, #050507 100%)",
+].join(", ");
+// Ethereal wash (after the gradient-explorations shader): sage → seafoam →
+// sky, milked toward white, with a teal bloom lower-left and a tinted horizon
+// band so the skyline never washes out into the pale ground.
 const DAY_BG = [
-  "radial-gradient(ellipse 70% 45% at 72% 82%, rgba(255,243,209,0.5), transparent 72%)",
-  "linear-gradient(to bottom, #74b9e8 0%, #a3d2f0 45%, #cfe7f6 78%, #e9e4d8 100%)",
+  "radial-gradient(ellipse 55% 60% at 8% 96%, rgba(84,184,166,0.5), transparent 70%)",
+  "linear-gradient(to top, rgba(140,192,175,0.38), transparent 32%)",
+  "linear-gradient(160deg, #8cc09f 0%, #9ecba4 14%, #add6cf 32%, #b0d1e5 55%, #e0efe9 76%, #f4f8f6 100%)",
 ].join(", ");
 
 function MicroLabel({ children }: { children: React.ReactNode }) {
@@ -255,6 +265,13 @@ export default function Showcase() {
         }
       `}</style>
 
+      {/* film grain over everything — part of the ethereal treatment */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-[100] opacity-[0.05] mix-blend-overlay"
+        style={{ backgroundImage: GRAIN }}
+      />
+
       {/* ---- hero playground: full-screen skyline, knobs on top ---- */}
       <section
         className="relative min-h-svh overflow-hidden transition-colors duration-700"
@@ -283,7 +300,7 @@ export default function Showcase() {
               an animated skyline for react
             </div>
             <h1
-              className={`text-balance text-[clamp(30px,4vw,46px)] leading-[1.05] tracking-[-0.015em] transition-colors duration-700 [font-family:var(--font-instrument-serif)] ${
+              className={`text-balance text-[clamp(28px,3.6vw,42px)] leading-[1.1] tracking-[-0.01em] transition-colors duration-700 [font-family:var(--font-young-serif)] ${
                 isNight
                   ? "text-zinc-50 [text-shadow:0_2px_30px_rgba(0,0,0,0.55)]"
                   : "text-zinc-900"
@@ -434,7 +451,7 @@ export default function Showcase() {
           <div className="mb-2.5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">
             use cases
           </div>
-          <h2 className="text-[clamp(26px,3vw,36px)] leading-[1.08] tracking-[-0.01em] text-zinc-50 [font-family:var(--font-instrument-serif)]">
+          <h2 className="text-[clamp(24px,2.6vw,32px)] leading-[1.12] tracking-[-0.005em] text-zinc-50 [font-family:var(--font-young-serif)]">
             Where it fits.
           </h2>
           <p className="mt-2 max-w-[56ch] text-pretty text-[14px] leading-relaxed text-zinc-400">
