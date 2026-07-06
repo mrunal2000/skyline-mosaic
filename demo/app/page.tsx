@@ -205,6 +205,135 @@ function ExampleCard({
   );
 }
 
+/** True the first time the element crosses into the viewport, then sticks. */
+function useInViewOnce<T extends HTMLElement>(threshold = 0.3) {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (!("IntersectionObserver" in window)) {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { threshold }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [threshold]);
+  return { ref, inView };
+}
+
+/** Fades content up the first time it scrolls into view. */
+function Reveal({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const { ref, inView } = useInViewOnce<HTMLDivElement>(0.3);
+  return (
+    <div
+      ref={ref}
+      className={`transition-[opacity,transform] duration-700 [transition-timing-function:cubic-bezier(0.215,0.61,0.355,1)] motion-reduce:transition-none ${
+        inView ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+      } ${className ?? ""}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Use-case figure that arms its skyline the first time it scrolls into view,
+ * so each build-in plays as the visitor reaches it. `delay` staggers cards
+ * that arrive together; the ↻ in the caption replays just that card.
+ */
+function UseCase({
+  index,
+  label,
+  propsNote,
+  delay = 0,
+  night,
+  className,
+  cardClassName,
+  renderSkyline,
+  children,
+}: {
+  index: string;
+  label: string;
+  propsNote: string;
+  delay?: number;
+  night: boolean;
+  className?: string;
+  cardClassName?: string;
+  renderSkyline: () => React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const { ref, inView } = useInViewOnce<HTMLElement>(0.3);
+  const [armed, setArmed] = useState(false);
+  const [replay, setReplay] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    const t = setTimeout(() => setArmed(true), delay);
+    return () => clearTimeout(t);
+  }, [inView, delay]);
+
+  return (
+    <figure
+      ref={ref}
+      className={`transition-[opacity,transform] duration-700 [transition-timing-function:cubic-bezier(0.215,0.61,0.355,1)] motion-reduce:transition-none ${
+        inView ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+      } ${className ?? ""}`}
+    >
+      <ExampleCard
+        night={night}
+        className={cardClassName}
+        skyline={
+          armed ? (
+            <div key={replay} className="absolute inset-0">
+              {renderSkyline()}
+            </div>
+          ) : null
+        }
+      >
+        {/* card copy holds back until the skyline is underway */}
+        <div
+          className="relative h-full transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none"
+          style={{
+            opacity: armed ? 1 : 0,
+            transform: armed ? "none" : "translateY(10px)",
+            transitionDelay: armed ? "650ms" : "0ms",
+          }}
+        >
+          {children}
+        </div>
+      </ExampleCard>
+      <figcaption className="mt-2.5 flex items-baseline gap-2 px-1 font-mono text-[11px]">
+        <span className="text-zinc-600">{index}</span>
+        <span className="text-zinc-400">{label}</span>
+        <span className="hidden text-zinc-600 sm:inline">· {propsNote}</span>
+        <button
+          type="button"
+          onClick={() => setReplay((r) => r + 1)}
+          className="ml-auto shrink-0 cursor-pointer text-zinc-600 transition-colors duration-150 hover:text-zinc-300"
+        >
+          ↻ replay
+        </button>
+      </figcaption>
+    </figure>
+  );
+}
+
 export default function Showcase() {
   const [mode, setMode] = useState<SkylineMosaicMode>("night");
   const [effect, setEffect] = useState<Effect>("mosaic");
@@ -324,7 +453,7 @@ export default function Showcase() {
               }`}
             >
               An animated pixel-mosaic skyline for your hero, header, or 404.
-              Day and night palettes, blooming windows, dither and shimmer —
+              Day and night palettes, blooming windows, dither and halftone —
               tuned to sit quietly behind real content.
             </p>
             <div className="mt-4">
@@ -353,7 +482,7 @@ export default function Showcase() {
                   isNight ? "text-zinc-500" : "text-zinc-400"
                 }`}
               >
-                v0.4.0
+                v0.6.0
               </span>
             </div>
 
@@ -460,7 +589,7 @@ export default function Showcase() {
 
       {/* ---- use cases ---- */}
       <section id="examples" className="mx-auto max-w-[1172px] scroll-mt-8 px-6 py-24">
-        <div className="mb-8">
+        <Reveal className="mb-8">
           <div className="mb-2.5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">
             use cases
           </div>
@@ -468,107 +597,110 @@ export default function Showcase() {
             Where it fits.
           </h2>
           <p className="mt-2 max-w-[56ch] text-pretty text-[14px] leading-relaxed text-zinc-400">
-            Three drop-in ideas — each card is the component with different
-            props behind ordinary content.
+            Same component, three different effects — each card builds itself
+            in as you reach it.
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-6 gap-5">
-          {/* 404 page */}
-          <figure className="col-span-4 max-md:col-span-6">
-            <ExampleCard
-              night
-              className="aspect-[2/1]"
-              skyline={
-                <SkylineMosaic
-                  mode="night"
-                  twinkle
-                  fog
-                  transition="rise"
-                  style={{ position: "absolute", inset: 0 }}
-                />
-              }
-            >
-              <div className="flex h-full flex-col items-center justify-center pb-[8%] text-center">
-                <div className="font-mono text-[12px] uppercase tracking-[0.2em] text-zinc-500">
-                  404
-                </div>
-                <div className="mt-2 text-[clamp(22px,2.6vw,32px)] text-zinc-100 [font-family:var(--font-instrument-serif)] [text-shadow:0_2px_24px_rgba(0,0,0,0.6)]">
-                  Lost in the fog.
-                </div>
-                <div className="mt-4 rounded-full border border-white/[0.16] bg-white/[0.06] px-4 py-1.5 text-[12.5px] text-zinc-300 backdrop-blur-sm">
-                  ← Back to the mainland
-                </div>
+          <UseCase
+            index="01"
+            label="404 page"
+            propsNote='mode="night" fog twinkle transition="rise"'
+            night
+            className="col-span-4 max-md:col-span-6"
+            cardClassName="aspect-[2/1]"
+            renderSkyline={() => (
+              <SkylineMosaic
+                mode="night"
+                twinkle
+                fog
+                transition="rise"
+                transitionDurationMs={2600}
+                style={{ position: "absolute", inset: 0 }}
+              />
+            )}
+          >
+            <div className="flex h-full flex-col items-center justify-center pb-[8%] text-center">
+              <div className="font-mono text-[12px] uppercase tracking-[0.2em] text-zinc-500">
+                404
               </div>
-            </ExampleCard>
-            <figcaption className="mt-2.5 px-1 font-mono text-[11px] text-zinc-600">
-              404 page · {'mode="night" fog twinkle transition="rise"'}
-            </figcaption>
-          </figure>
+              <div className="mt-2 text-[clamp(22px,2.6vw,32px)] text-zinc-100 [font-family:var(--font-instrument-serif)] [text-shadow:0_2px_24px_rgba(0,0,0,0.6)]">
+                Lost in the fog.
+              </div>
+              <div className="mt-4 rounded-full border border-white/[0.16] bg-white/[0.06] px-4 py-1.5 text-[12.5px] text-zinc-300 backdrop-blur-sm">
+                ← Back to the mainland
+              </div>
+            </div>
+          </UseCase>
 
           {/* weather widget — fills its cell so it aligns with the 404 card */}
-          <figure className="col-span-2 flex flex-col max-md:col-span-6">
-            <ExampleCard
-              night={false}
-              className="flex-1 max-md:aspect-[2/1]"
-              skyline={
-                <SkylineMosaic
-                  mode="day"
-                  cellSize={3}
-                  cellGap={1}
-                  style={{ position: "absolute", inset: 0 }}
-                />
-              }
-            >
-              <div className="flex h-full flex-col p-5 text-zinc-800">
-                <div className="text-[12.5px] font-medium text-zinc-600">
-                  San Francisco
-                </div>
-                <div className="text-[46px] font-light leading-tight tracking-[-0.02em] tabular-nums">
-                  61°
-                </div>
-                <div className="text-[11.5px] text-zinc-500">
-                  Clear · H 64° L 54°
-                </div>
+          <UseCase
+            index="02"
+            label="weather widget"
+            propsNote='effect="halftone" clouds cellSize={5}'
+            delay={180}
+            night={false}
+            className="col-span-2 flex flex-col max-md:col-span-6"
+            cardClassName="flex-1 max-md:aspect-[2/1]"
+            renderSkyline={() => (
+              <SkylineMosaic
+                mode="day"
+                effect="halftone"
+                clouds
+                cellSize={5}
+                transitionDurationMs={2200}
+                style={{ position: "absolute", inset: 0 }}
+              />
+            )}
+          >
+            <div className="flex h-full flex-col p-5 text-zinc-800">
+              <div className="text-[12.5px] font-medium text-zinc-600">
+                San Francisco
               </div>
-            </ExampleCard>
-            <figcaption className="mt-2.5 px-1 font-mono text-[11px] text-zinc-600">
-              widget · {'mode="day" cellSize={3}'}
-            </figcaption>
-          </figure>
-
-
-          {/* event banner */}
-          <figure className="col-span-6">
-            <ExampleCard
-              night={false}
-              className="aspect-[2.6/1] max-md:aspect-[1.6/1]"
-              skyline={
-                <SkylineMosaic
-                  mode="day"
-                  transition="sweep"
-                  style={{ position: "absolute", inset: 0 }}
-                />
-              }
-            >
-              {/* soft scrim so the copy reads over the buildings */}
-              <div className="absolute inset-x-0 top-0 h-3/5 bg-gradient-to-b from-[#9fd0f0]/70 via-[#9fd0f0]/25 to-transparent" />
-              <div className="relative flex h-full flex-col items-start justify-start gap-3 p-7 md:p-9">
-                <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-700">
-                  June 12–14 · Moscone West
-                </div>
-                <div className="max-w-[480px] text-balance font-mono text-[clamp(19px,2.2vw,28px)] font-medium leading-[1.12] tracking-[-0.03em] text-zinc-900">
-                  The JavaScript conference above the fog.
-                </div>
-                <div className="mt-1 rounded-full bg-zinc-900 px-4 py-1.5 text-[12.5px] font-medium text-zinc-50">
-                  Get tickets →
-                </div>
+              <div className="text-[46px] font-light leading-tight tracking-[-0.02em] tabular-nums">
+                61°
               </div>
-            </ExampleCard>
-            <figcaption className="mt-2.5 px-1 font-mono text-[11px] text-zinc-600">
-              event banner · {'mode="day" transition="sweep"'}
-            </figcaption>
-          </figure>
+              <div className="text-[11.5px] text-zinc-500">
+                Clear · H 64° L 54°
+              </div>
+            </div>
+          </UseCase>
+
+          <UseCase
+            index="03"
+            label="event banner"
+            propsNote='effect="dither" shape="diamond" transition="sweep"'
+            delay={120}
+            night={false}
+            className="col-span-6"
+            cardClassName="aspect-[2.6/1] max-md:aspect-[1.6/1]"
+            renderSkyline={() => (
+              <SkylineMosaic
+                mode="day"
+                effect="dither"
+                dither={{ shape: "diamond" }}
+                clouds
+                transition="sweep"
+                transitionDurationMs={2600}
+                style={{ position: "absolute", inset: 0 }}
+              />
+            )}
+          >
+            {/* soft scrim so the copy reads over the buildings */}
+            <div className="absolute inset-x-0 top-0 h-3/5 bg-gradient-to-b from-[#9fd0f0]/70 via-[#9fd0f0]/25 to-transparent" />
+            <div className="relative flex h-full flex-col items-start justify-start gap-3 p-7 md:p-9">
+              <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-700">
+                June 12–14 · Moscone West
+              </div>
+              <div className="max-w-[480px] text-balance font-mono text-[clamp(19px,2.2vw,28px)] font-medium leading-[1.12] tracking-[-0.03em] text-zinc-900">
+                The JavaScript conference above the fog.
+              </div>
+              <div className="mt-1 rounded-full bg-zinc-900 px-4 py-1.5 text-[12.5px] font-medium text-zinc-50">
+                Get tickets →
+              </div>
+            </div>
+          </UseCase>
         </div>
       </section>
 

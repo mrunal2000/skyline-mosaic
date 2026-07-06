@@ -45,7 +45,7 @@ export type SkylineMosaicProps = {
    * `{ day, night? }` pair of image sources. Defaults to `"sf"`.
    */
   scene?: SceneName | SceneImages;
-  /** Rendering style: `"mosaic"` (default), `"dither"`, or `"shimmer"`. */
+  /** Rendering style: `"mosaic"` (default), `"dither"`, or `"halftone"`. */
   effect?: Effect;
   /** Ordered-dithering options, used when `effect="dither"`. */
   dither?: DitherOptions;
@@ -102,7 +102,7 @@ function resolveMode(mode: SkylineMosaicMode): ResolvedMode {
 /**
  * An animated pixel-mosaic rendering of a city skyline, with day/night
  * palettes, a bloom around lit windows, and optional twinkle and
- * dither/shimmer effects.
+ * dither/halftone effects.
  *
  * Sizes itself to its container — give the wrapper a height (e.g. `100vh` for a
  * hero or `300px` for a card). Renders as a `pointer-events: none` backdrop, so
