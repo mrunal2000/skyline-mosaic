@@ -409,7 +409,7 @@ export default function Showcase() {
             Where it fits.
           </h2>
           <p className="mt-2 max-w-[56ch] text-pretty text-[14px] leading-relaxed text-zinc-400">
-            Four drop-in ideas — each card is the component with different
+            Three drop-in ideas — each card is the component with different
             props behind ordinary content.
           </p>
         </div>
@@ -478,38 +478,6 @@ export default function Showcase() {
             </figcaption>
           </figure>
 
-          {/* status page strip — slim, mono, infrastructure vibes */}
-          <figure className="col-span-6">
-            <ExampleCard
-              night
-              className="aspect-[7/1] max-md:aspect-[3/1]"
-              skyline={
-                <SkylineMosaic
-                  mode="night"
-                  twinkle
-                  cellSize={4}
-                  style={{ position: "absolute", inset: 0 }}
-                />
-              }
-            >
-              {/* scrim keeps the left text readable over dense lit windows */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-              <div className="relative flex h-full items-center justify-between px-6 font-mono md:px-8">
-                <div className="flex items-center gap-3">
-                  <span className="relative flex size-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50 motion-reduce:animate-none" />
-                    <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
-                  </span>
-                  <span className="text-[13.5px] text-zinc-100">
-                    All systems operational
-                  </span>
-                </div>
-                <div className="text-[11.5px] tracking-tight text-zinc-400 max-md:hidden">
-                  api 99.99% · cdn 99.98% · db 99.97% · updated 2m ago
-                </div>
-              </div>
-            </ExampleCard>
-          </figure>
 
           {/* event banner */}
           <figure className="col-span-6">
