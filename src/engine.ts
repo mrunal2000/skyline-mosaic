@@ -253,7 +253,7 @@ export class SkylineEngine {
   constructor(canvas: HTMLCanvasElement, opts: EngineOptions) {
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("skyline-mosaic: 2D canvas context unavailable");
+    if (!ctx) throw new Error("pixel-sf-skyline: 2D canvas context unavailable");
     this.ctx = ctx;
     this.opts = opts;
     void this.load();

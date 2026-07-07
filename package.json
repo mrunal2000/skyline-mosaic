@@ -1,5 +1,5 @@
 {
-  "name": "skyline-mosaic",
+  "name": "pixel-sf-skyline",
   "version": "0.6.1",
   "description": "An animated pixel-mosaic city skyline backdrop for React — day/night modes, twinkling windows, volumetric fog, drifting clouds, dither & halftone effects, and a city-lights bloom.",
   "license": "MIT",
@@ -31,7 +31,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "assets": "node scripts/convert-assets.mjs",
-    "prepublishOnly": "npm run build"
+    "prepare": "npm run build"
   },
   "peerDependencies": {
     "react": ">=18",

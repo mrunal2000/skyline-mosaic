@@ -7,9 +7,9 @@ import {
   type Effect,
   type Transition,
   type DitherShape,
-} from "skyline-mosaic";
+} from "pixel-sf-skyline";
 
-const INSTALL_CMD = "npm i skyline-mosaic";
+const INSTALL_CMD = "npm i pixel-sf-skyline";
 const PLAYGROUND_KEY = "skyline-playground";
 
 // Film grain overlay — the ethereal wash needs tooth or it reads as plastic.
@@ -464,7 +464,7 @@ export default function Showcase() {
                   : "text-zinc-900"
               }`}
             >
-              San Francisco, one square at a time.
+              San Francisco, one pixel at a time.
             </h1>
             <p
               className={`mt-2.5 max-w-[56ch] text-pretty text-[14.5px] leading-relaxed transition-colors duration-700 ${
@@ -523,7 +523,7 @@ export default function Showcase() {
                   isNight ? "text-zinc-100" : "text-zinc-900"
                 }`}
               >
-                skyline-mosaic
+                pixel-sf-skyline
               </span>
               <span
                 className={`font-mono text-[11px] tabular-nums ${
@@ -762,7 +762,7 @@ export default function Showcase() {
             : "border-black/[0.08] text-zinc-500"
         }`}
       >
-        skyline-mosaic · MIT · npm i skyline-mosaic
+        pixel-sf-skyline · MIT · npm i pixel-sf-skyline
       </footer>
     </div>
   );

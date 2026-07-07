@@ -4,6 +4,9 @@
 
 ### Changed
 
+- **Renamed to `pixel-sf-skyline`.** Formerly published as `skyline-mosaic`,
+  now deprecated and pointing here. The API is unchanged — only the install
+  name differs (`npm i pixel-sf-skyline`).
 - **Dissolve transition.** Cells now pop on at random moments across the
   reveal window instead of lighting building-by-building with a crossfade.
 

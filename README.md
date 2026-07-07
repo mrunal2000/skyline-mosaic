@@ -1,4 +1,4 @@
-# skyline-mosaic
+# pixel-sf-skyline
 
 An animated pixel-mosaic city skyline backdrop for React. The skyline builds
 itself in cell by cell, with separate day and night palettes — at night, lit
@@ -15,7 +15,7 @@ windows bloom, switch on and off, and beacons blink like the real thing.
 ## Install
 
 ```bash
-npm install skyline-mosaic
+npm install pixel-sf-skyline
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ npm install skyline-mosaic
 ```tsx
 "use client"; // Next.js app router only
 
-import { SkylineMosaic } from "skyline-mosaic";
+import { SkylineMosaic } from "pixel-sf-skyline";
 
 export default function Hero() {
   return (

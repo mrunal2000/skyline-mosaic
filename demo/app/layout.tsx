@@ -25,7 +25,7 @@ const youngSerif = Young_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "skyline-mosaic — an animated SF skyline for React",
+  title: "pixel-sf-skyline — an animated SF skyline for React",
   description:
     "An animated pixel-mosaic San Francisco skyline backdrop for React. Day and night palettes, twinkling windows, volumetric fog, dither and shimmer effects — one component, ~140KB.",
 };
