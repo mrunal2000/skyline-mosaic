@@ -428,28 +428,24 @@ export default function Showcase() {
         style={{ backgroundImage: GRAIN }}
       />
 
-      {/* ---- hero playground: text over skyline; bg capped at half-screen on phone ---- */}
+      {/* ---- hero playground: full-screen skyline, knobs on top ---- */}
       <section
         id="playground"
-        className="relative overflow-hidden transition-colors duration-700 max-lg:min-h-[50svh] lg:min-h-svh"
+        className="relative min-h-svh overflow-hidden transition-colors duration-700"
+        style={{ background: isNight ? NIGHT_BG : DAY_BG }}
       >
-        <div
-          className="absolute inset-x-0 top-0 max-lg:h-[50svh] lg:inset-0"
-          style={{ background: isNight ? NIGHT_BG : DAY_BG }}
-        >
-          <SkylineMosaic
-            key={`${transition}-${replay}`}
-            mode={mode}
-            effect={effect}
-            transition={transition}
-            twinkle={twinkle}
-            fog={fog}
-            clouds={clouds}
-            cellGap={Number(cellGap)}
-            dither={{ shape }}
-            style={{ position: "absolute", inset: 0 }}
-          />
-        </div>
+        <SkylineMosaic
+          key={`${transition}-${replay}`}
+          mode={mode}
+          effect={effect}
+          transition={transition}
+          twinkle={twinkle}
+          fog={fog}
+          clouds={clouds}
+          cellGap={Number(cellGap)}
+          dither={{ shape }}
+          style={{ position: "absolute", inset: 0 }}
+        />
 
         <div className="relative z-10 flex flex-col gap-8 p-6 md:p-10 lg:block">
           {/* headline — top-left, like a real hero */}
@@ -534,7 +530,7 @@ export default function Showcase() {
                   isNight ? "text-zinc-500" : "text-zinc-400"
                 }`}
               >
-                v0.6.0
+                v0.6.1
               </span>
             </div>
 
@@ -624,7 +620,7 @@ export default function Showcase() {
         <a
           href="#examples"
           aria-label="Scroll to use cases"
-          className={`absolute left-1/2 z-10 -translate-x-1/2 animate-bounce transition-colors motion-reduce:animate-none max-lg:top-[calc(50svh-2.5rem)] lg:bottom-6 ${
+          className={`absolute bottom-6 left-1/2 z-10 -translate-x-1/2 animate-bounce transition-colors motion-reduce:animate-none ${
             isNight
               ? "text-zinc-500 hover:text-zinc-300"
               : "text-zinc-400 hover:text-zinc-600"

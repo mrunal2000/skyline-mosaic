@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1
+
+### Changed
+
+- **Dissolve transition.** Cells now pop on at random moments across the
+  reveal window instead of lighting building-by-building with a crossfade.
+
 ## 0.6.0
 
 The "high craft" release — the goal: stop looking like a filter on a photo.
