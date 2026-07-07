@@ -489,7 +489,7 @@ export class SkylineEngine {
       }));
   }
 
-  /** Choreograph the reveal: buildings turn on as buildings, floor by floor. */
+  /** Choreograph the reveal: per-transition timing on each cell. */
   private assignDelays() {
     const { transition, transitionDurationMs, reducedMotion } = this.opts;
     this.settleTime = 0;
@@ -498,6 +498,14 @@ export class SkylineEngine {
       return;
     }
     const d = transitionDurationMs;
+
+    if (transition === "dissolve") {
+      // Random scatter: each cell pops on independently, like static resolving.
+      const spread = Math.max(1, d - 60);
+      for (const c of this.cells) c.delay = Math.random() * spread;
+      return;
+    }
+
     const n = Math.max(1, this.buildings.length);
 
     // Order the buildings by transition style, then stagger their starts.
@@ -507,11 +515,6 @@ export class SkylineEngine {
     } else if (transition === "rise") {
       // Shortest first — the towers complete the skyline.
       order.sort((a, z) => this.buildings[z].top - this.buildings[a].top);
-    } else {
-      for (let i = order.length - 1; i > 0; i--) {
-        const j = (Math.random() * (i + 1)) | 0;
-        [order[i], order[j]] = [order[j], order[i]];
-      }
     }
     const startOf = new Array<number>(n).fill(0);
     order.forEach((b, pos) => {
@@ -705,7 +708,8 @@ export class SkylineEngine {
     if (this.settleTime) return this.settleTime;
     let max = 0;
     for (const c of this.cells) if (c.delay > max) max = c.delay;
-    this.settleTime = max + CELL_FADE_MS + 60;
+    const fade = this.opts.transition === "dissolve" ? 0 : CELL_FADE_MS;
+    this.settleTime = max + fade + 60;
     return this.settleTime;
   }
 
@@ -868,11 +872,14 @@ export class SkylineEngine {
   }
 
   /**
-   * Reveal progress for a cell: 0 before its delay, eased 0→1 across
-   * CELL_FADE_MS after it. Cells fade in / crossfade instead of popping.
+   * Reveal progress for a cell: 0 before its delay, then on. Sweep/rise ease
+   * in over CELL_FADE_MS; dissolve pops each cell instantly at its random slot.
    */
   private revealProgress(c: Cell, elapsed: number) {
     if (this.opts.reducedMotion) return 1;
+    if (this.opts.transition === "dissolve") {
+      return elapsed >= c.delay ? 1 : 0;
+    }
     const t = (elapsed - c.delay) / CELL_FADE_MS;
     if (t <= 0) return 0;
     if (t >= 1) return 1;
