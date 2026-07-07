@@ -10,7 +10,7 @@
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "pixel-sf-skyline": "file:.."
+    "pixel-sf-skyline": "^0.6.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
