@@ -266,7 +266,6 @@ function Reveal({
 function UseCase({
   index,
   label,
-  propsNote,
   delay = 0,
   night,
   className,
@@ -276,7 +275,6 @@ function UseCase({
 }: {
   index: string;
   label: string;
-  propsNote: string;
   delay?: number;
   night: boolean;
   className?: string;
@@ -327,7 +325,6 @@ function UseCase({
       <figcaption className="mt-2.5 flex items-baseline gap-2 px-1 font-mono text-[11px]">
         <span className="text-zinc-600">{index}</span>
         <span className="text-zinc-400">{label}</span>
-        <span className="hidden text-zinc-600 sm:inline">· {propsNote}</span>
         <button
           type="button"
           onClick={() => setReplay((r) => r + 1)}
@@ -666,7 +663,6 @@ export default function Showcase() {
           <UseCase
             index="01"
             label="404 page"
-            propsNote='mode="night" fog twinkle transition="rise"'
             night
             className="col-span-4 max-md:col-span-6"
             cardClassName="aspect-[2/1]"
@@ -698,7 +694,6 @@ export default function Showcase() {
           <UseCase
             index="02"
             label="weather widget"
-            propsNote='effect="halftone" clouds cellSize={5}'
             delay={180}
             night={false}
             className="col-span-2 flex flex-col max-md:col-span-6"
@@ -730,7 +725,6 @@ export default function Showcase() {
           <UseCase
             index="03"
             label="event banner"
-            propsNote='effect="dither" shape="diamond" transition="sweep"'
             delay={120}
             night={false}
             className="col-span-6"
