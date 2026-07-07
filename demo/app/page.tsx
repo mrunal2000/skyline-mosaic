@@ -351,6 +351,8 @@ export default function Showcase() {
   const [cellGap, setCellGap] = useState<"0" | "1" | "2" | "3">("1");
   const [replay, setReplay] = useState(0);
   const [systemDark, setSystemDark] = useState(false);
+  // Mobile only: panel starts collapsed so the skyline stays visible.
+  const [panelOpen, setPanelOpen] = useState(false);
 
   // Resolve "auto" the same way the component does, so the page background
   // always matches the palette the skyline actually renders.
@@ -394,8 +396,19 @@ export default function Showcase() {
 
   const isNight = mode === "night" || (mode === "auto" && systemDark);
 
+  useEffect(() => {
+    document.body.style.backgroundColor = isNight ? "#09090b" : "#ffffff";
+    return () => {
+      document.body.style.backgroundColor = "";
+    };
+  }, [isNight]);
+
   return (
-    <div className="bg-zinc-950 font-sans text-zinc-100">
+    <div
+      className={`font-sans transition-colors duration-700 ${
+        isNight ? "bg-zinc-950 text-zinc-100" : "bg-white text-zinc-900"
+      }`}
+    >
       <style>{`
         html { scroll-behavior: smooth; }
         @keyframes showcase-up {
@@ -412,27 +425,34 @@ export default function Showcase() {
       {/* film grain over everything — part of the ethereal treatment */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-[100] opacity-[0.1] mix-blend-overlay"
+        className={`pointer-events-none fixed inset-0 z-[100] mix-blend-overlay transition-opacity duration-700 ${
+          isNight ? "opacity-[0.1]" : "opacity-[0.06]"
+        }`}
         style={{ backgroundImage: GRAIN }}
       />
 
-      {/* ---- hero playground: full-screen skyline, knobs on top ---- */}
+      {/* ---- hero playground: text over skyline; bg capped at half-screen on phone ---- */}
       <section
-        className="relative min-h-svh overflow-hidden transition-colors duration-700"
-        style={{ background: isNight ? NIGHT_BG : DAY_BG }}
+        id="playground"
+        className="relative overflow-hidden transition-colors duration-700 max-lg:min-h-[50svh] lg:min-h-svh"
       >
-        <SkylineMosaic
-          key={`${transition}-${replay}`}
-          mode={mode}
-          effect={effect}
-          transition={transition}
-          twinkle={twinkle}
-          fog={fog}
-          clouds={clouds}
-          cellGap={Number(cellGap)}
-          dither={{ shape }}
-          style={{ position: "absolute", inset: 0 }}
-        />
+        <div
+          className="absolute inset-x-0 top-0 max-lg:h-[50svh] lg:inset-0"
+          style={{ background: isNight ? NIGHT_BG : DAY_BG }}
+        >
+          <SkylineMosaic
+            key={`${transition}-${replay}`}
+            mode={mode}
+            effect={effect}
+            transition={transition}
+            twinkle={twinkle}
+            fog={fog}
+            clouds={clouds}
+            cellGap={Number(cellGap)}
+            dither={{ shape }}
+            style={{ position: "absolute", inset: 0 }}
+          />
+        </div>
 
         <div className="relative z-10 flex flex-col gap-8 p-6 md:p-10 lg:block">
           {/* headline — top-left, like a real hero */}
@@ -467,9 +487,38 @@ export default function Showcase() {
             </div>
           </header>
 
-          {/* control panel — floats top-right on the scene */}
+          <button
+            type="button"
+            aria-expanded={panelOpen}
+            aria-controls="playground-controls"
+            onClick={() => setPanelOpen((v) => !v)}
+            className={`showcase-up inline-flex h-10 w-fit cursor-pointer items-center gap-2 rounded-full border px-4 font-mono text-[12px] backdrop-blur-xl transition-colors duration-500 [animation-delay:120ms] lg:hidden ${
+              isNight
+                ? "border-white/[0.12] bg-zinc-900/70 text-zinc-200"
+                : "border-black/[0.08] bg-white/70 text-zinc-800"
+            }`}
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M2 4.5h7M13.5 4.5H14M2 11.5h.5M7 11.5h7" />
+              <circle cx="11" cy="4.5" r="1.8" />
+              <circle cx="4.5" cy="11.5" r="1.8" />
+            </svg>
+            {panelOpen ? "hide controls" : "customize"}
+          </button>
+
+          {/* control panel — floats top-right on desktop, in-flow on mobile */}
           <aside
-            className={`showcase-up w-[288px] rounded-2xl border p-4 backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-500 [animation-delay:120ms] max-lg:w-full max-lg:max-w-[420px] lg:absolute lg:top-10 lg:right-10 ${
+            id="playground-controls"
+            className={`showcase-up w-full max-w-[420px] rounded-2xl border p-4 backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-500 [animation-delay:120ms] lg:absolute lg:top-10 lg:right-10 lg:block lg:w-[288px] ${
+              panelOpen ? "max-lg:block" : "max-lg:hidden"
+            } ${
               isNight
                 ? "border-white/[0.09] bg-zinc-900/70 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.35)]"
                 : "border-black/[0.07] bg-white/[0.65] shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_rgba(0,0,0,0.1)]"
@@ -493,87 +542,84 @@ export default function Showcase() {
             </div>
 
             <div className="flex flex-col gap-3.5">
-              <div className="flex flex-col gap-1.5 px-1">
-                <MicroLabel>Mode</MicroLabel>
-                <Segmented
-                  value={mode}
-                  options={["day", "night", "auto"] as const}
-                  onChange={setMode}
-                  isNight={isNight}
-                />
-                {/* fixed-height hint so switching modes never shifts the panel */}
-                <p className="h-4 text-[11px] leading-4 text-zinc-500">
-                  {mode === "auto"
-                    ? `follows your OS appearance — ${systemDark ? "dark" : "light"} right now`
-                    : mode === "night"
-                      ? "always night"
-                      : "always daytime"}
-                </p>
-              </div>
+            <div className="flex flex-col gap-1.5 px-1">
+              <MicroLabel>Mode</MicroLabel>
+              <Segmented
+                value={mode}
+                options={["day", "night", "auto"] as const}
+                onChange={setMode}
+                isNight={isNight}
+              />
+              <p className="h-4 text-[11px] leading-4 text-zinc-500">
+                {mode === "auto"
+                  ? `follows your OS appearance — ${systemDark ? "dark" : "light"} right now`
+                  : mode === "night"
+                    ? "always night"
+                    : "always daytime"}
+              </p>
+            </div>
 
-              <div className="flex flex-col gap-1.5 px-1">
-                <MicroLabel>Effect</MicroLabel>
-                <Segmented
-                  value={effect}
-                  options={["mosaic", "dither", "halftone"] as const}
-                  onChange={setEffect}
-                  isNight={isNight}
-                />
-              </div>
+            <div className="flex flex-col gap-1.5 px-1">
+              <MicroLabel>Effect</MicroLabel>
+              <Segmented
+                value={effect}
+                options={["mosaic", "dither", "halftone"] as const}
+                onChange={setEffect}
+                isNight={isNight}
+              />
+            </div>
 
-              {/* always mounted so the panel never changes height */}
-              <div
-                aria-disabled={effect !== "dither"}
-                className={`flex flex-col gap-1.5 px-1 transition-opacity duration-200 ${
-                  effect === "dither" ? "" : "pointer-events-none opacity-35"
-                }`}
-              >
-                <MicroLabel>Dither shape</MicroLabel>
-                <Segmented
-                  value={shape}
-                  options={["square", "circle", "diamond", "dot"] as const}
-                  onChange={setShape}
-                  isNight={isNight}
-                />
-              </div>
+            <div
+              aria-disabled={effect !== "dither"}
+              className={`flex flex-col gap-1.5 px-1 transition-opacity duration-200 ${
+                effect === "dither" ? "" : "pointer-events-none opacity-35"
+              }`}
+            >
+              <MicroLabel>Dither shape</MicroLabel>
+              <Segmented
+                value={shape}
+                options={["square", "circle", "diamond", "dot"] as const}
+                onChange={setShape}
+                isNight={isNight}
+              />
+            </div>
 
-              <div className="flex flex-col gap-1.5 px-1">
-                <MicroLabel>Transition</MicroLabel>
-                <Segmented
-                  value={transition}
-                  options={["dissolve", "sweep", "rise"] as const}
-                  onChange={setTransition}
-                  isNight={isNight}
-                />
-              </div>
+            <div className="flex flex-col gap-1.5 px-1">
+              <MicroLabel>Transition</MicroLabel>
+              <Segmented
+                value={transition}
+                options={["dissolve", "sweep", "rise"] as const}
+                onChange={setTransition}
+                isNight={isNight}
+              />
+            </div>
 
-              <div className="flex flex-col gap-1.5 px-1">
-                <MicroLabel>Cell gap</MicroLabel>
-                <Segmented
-                  value={cellGap}
-                  options={["0", "1", "2", "3"] as const}
-                  onChange={setCellGap}
-                  labels={{ "0": "0px", "1": "1px", "2": "2px", "3": "3px" }}
-                  isNight={isNight}
-                />
-              </div>
+            <div className="flex flex-col gap-1.5 px-1">
+              <MicroLabel>Cell gap</MicroLabel>
+              <Segmented
+                value={cellGap}
+                options={["0", "1", "2", "3"] as const}
+                onChange={setCellGap}
+                labels={{ "0": "0px", "1": "1px", "2": "2px", "3": "3px" }}
+                isNight={isNight}
+              />
+            </div>
 
-              <div className={`mx-1 h-px transition-colors duration-500 ${isNight ? "bg-white/[0.08]" : "bg-black/[0.07]"}`} />
+            <div className={`mx-1 h-px transition-colors duration-500 ${isNight ? "bg-white/[0.08]" : "bg-black/[0.07]"}`} />
 
-              <div className="flex flex-col">
-                <ToggleRow label="Window twinkle" on={twinkle} onChange={setTwinkle} isNight={isNight} />
-                <ToggleRow label="Fog" on={fog} onChange={setFog} isNight={isNight} />
-                <ToggleRow label="Clouds (day)" on={clouds} onChange={setClouds} isNight={isNight} />
-              </div>
+            <div className="flex flex-col">
+              <ToggleRow label="Window twinkle" on={twinkle} onChange={setTwinkle} isNight={isNight} />
+              <ToggleRow label="Fog" on={fog} onChange={setFog} isNight={isNight} />
+              <ToggleRow label="Clouds (day)" on={clouds} onChange={setClouds} isNight={isNight} />
+            </div>
 
-              <button
-                type="button"
-                onClick={() => setReplay((r) => r + 1)}
-                className={`h-9 cursor-pointer rounded-[10px] text-[13px] font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] ${isNight ? "bg-white/[0.08] text-zinc-200 hover:bg-white/[0.13]" : "bg-black/[0.06] text-zinc-700 hover:bg-black/[0.09]"}`}
-              >
-                Replay build-in
-              </button>
-
+            <button
+              type="button"
+              onClick={() => setReplay((r) => r + 1)}
+              className={`h-9 cursor-pointer rounded-[10px] text-[13px] font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] ${isNight ? "bg-white/[0.08] text-zinc-200 hover:bg-white/[0.13]" : "bg-black/[0.06] text-zinc-700 hover:bg-black/[0.09]"}`}
+            >
+              Replay build-in
+            </button>
             </div>
           </aside>
         </div>
@@ -581,7 +627,7 @@ export default function Showcase() {
         <a
           href="#examples"
           aria-label="Scroll to use cases"
-          className={`absolute bottom-6 left-1/2 z-10 -translate-x-1/2 animate-bounce transition-colors motion-reduce:animate-none ${
+          className={`absolute left-1/2 z-10 -translate-x-1/2 animate-bounce transition-colors motion-reduce:animate-none max-lg:top-[calc(50svh-2.5rem)] lg:bottom-6 ${
             isNight
               ? "text-zinc-500 hover:text-zinc-300"
               : "text-zinc-400 hover:text-zinc-600"
@@ -599,10 +645,18 @@ export default function Showcase() {
           <div className="mb-2.5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">
             use cases
           </div>
-          <h2 className="text-[clamp(24px,2.6vw,32px)] leading-[1.12] tracking-[-0.005em] text-zinc-50 [font-family:var(--font-young-serif)]">
+          <h2
+            className={`text-[clamp(24px,2.6vw,32px)] leading-[1.12] tracking-[-0.005em] transition-colors duration-700 [font-family:var(--font-young-serif)] ${
+              isNight ? "text-zinc-50" : "text-zinc-900"
+            }`}
+          >
             Where it fits.
           </h2>
-          <p className="mt-2 max-w-[56ch] text-pretty text-[14px] leading-relaxed text-zinc-400">
+          <p
+            className={`mt-2 max-w-[56ch] text-pretty text-[14px] leading-relaxed transition-colors duration-700 ${
+              isNight ? "text-zinc-400" : "text-zinc-600"
+            }`}
+          >
             Same component, three different effects — each card builds itself
             in as you reach it.
           </p>
@@ -711,7 +765,13 @@ export default function Showcase() {
       </section>
 
       {/* ---- footer ---- */}
-      <footer className="border-t border-white/[0.06] py-10 text-center font-mono text-[11.5px] text-zinc-600">
+      <footer
+        className={`border-t py-10 text-center font-mono text-[11.5px] transition-colors duration-700 ${
+          isNight
+            ? "border-white/[0.06] text-zinc-600"
+            : "border-black/[0.08] text-zinc-500"
+        }`}
+      >
         skyline-mosaic · MIT · npm i skyline-mosaic
       </footer>
     </div>
